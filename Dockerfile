@@ -24,3 +24,12 @@ RUN curl -O -L https://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz 
 	./configure --prefix="${FFMPEG_BUILD}" --bindir="${FFMPEG_BIN}" &&\
 	make && make install
 
+RUN git clone --depth 1 https://code.videolan.org/videolan/x264.git &&\
+	cd x264 &&\
+	PKG_CONFIG_PATH="${FFMPEG_BUILD}/lib/pkgconfig" ./configure --prefix="${FFMPEG_BUILD}" --bindir="${FFMPEG_BIN}" --enable-static &&\
+	make && make install
+
+RUN hg clone http://hg.videolan.org/x265 &&\
+	cd x265/build/linux &&\
+	cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="${FFMPEG_BUILD}" -DENABLE_SHARED:bool=off ../../source &&\
+	make && make install
