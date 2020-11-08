@@ -1,6 +1,6 @@
 FROM centos:8
 
-RUN dnf install autoconf automake bzip2 bzip2-devel cmake freetype-devel gcc gcc-c++ git libtool make mercurial pkgconfig zlib-devel -y
+RUN dnf install autoconf automake bzip2 bzip2-devel cmake diffutils freetype-devel gcc gcc-c++ git libtool make mercurial pkgconfig zlib-devel -y
 
 ARG BASE_DIR=/usr/local
 ENV FFMPEG_BASE ${BASE_DIR}/ffmpeg
@@ -32,4 +32,27 @@ RUN git clone --depth 1 https://code.videolan.org/videolan/x264.git &&\
 RUN hg clone http://hg.videolan.org/x265 &&\
 	cd x265/build/linux &&\
 	cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="${FFMPEG_BUILD}" -DENABLE_SHARED:bool=off ../../source &&\
+	make && make install
+
+RUN git clone --depth 1 https://github.com/mstorsjo/fdk-aac &&\
+	cd fdk-aac &&\
+	autoreconf -fiv &&\
+	./configure --prefix="${FFMPEG_BUILD}" --disable-shared &&\
+	make && make install
+
+RUN curl -O -L https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz &&\
+	tar xzvf lame-3.100.tar.gz &&\
+	cd lame-3.100 &&\
+	./configure --prefix="${FFMPEG_BUILD}" --bindir="${FFMPEG_BIN}" --disable-shared --enable-nasm &&\
+	make && make install
+
+RUN curl -O -L https://archive.mozilla.org/pub/opus/opus-1.3.1.tar.gz &&\
+	tar xzvf opus-1.3.1.tar.gz &&\
+	cd opus-1.3.1 &&\
+	./configure --prefix="${FFMPEG_BUILD}" --disable-shared &&\
+	make && make install
+
+RUN git clone --depth 1 https://chromium.googlesource.com/webm/libvpx.git &&\
+	cd libvpx &&\
+	./configure --prefix="${FFMPEG_BUILD}" --disable-examples --disable-unit-tests --enable-vp9-highbitdepth --as=yasm &&\
 	make && make install
