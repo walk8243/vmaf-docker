@@ -57,13 +57,31 @@ RUN git clone --depth 1 https://chromium.googlesource.com/webm/libvpx.git &&\
 	./configure --prefix="${FFMPEG_BUILD}" --disable-examples --disable-unit-tests --enable-vp9-highbitdepth --as=yasm &&\
 	make && make install
 
-# ffmpeg本体
 RUN curl -O -L https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 &&\
-	tar xjvf ffmpeg-snapshot.tar.bz2 &&\
-	cd ffmpeg &&\
-	PKG_CONFIG_PATH="${FFMPEG_BUILD}/lib/pkgconfig" ./configure --prefix="${FFMPEG_BUILD}" --pkg-config-flags="--static" --extra-cflags="-I${FFMPEG_BUILD}/include" --extra-ldflags="-L${FFMPEG_BUILD}/lib" --extra-libs=-lpthread --extra-libs=-lm --bindir="${FFMPEG_BIN}" --enable-gpl --enable-libfdk_aac --enable-libfreetype --enable-libmp3lame --enable-libopus --enable-libvpx --enable-libx264 --enable-libx265 --enable-nonfree &&\
-	make && make install
-RUN hash -d ffmpeg
+	tar xjvf ffmpeg-snapshot.tar.bz2
 
-WORKDIR ${BASE_DIR}
-RUN rm -rf ${FFMPEG_SOURCE}
+# VMAFのインストール
+RUN dnf install python38 python38-devel python38-libs python38-pip -y &&\
+	pip3 install meson cython numpy ninja &&\
+	git clone --depth 1 https://github.com/Netflix/vmaf.git &&\
+	cd vmaf &&\
+	make &&\
+	pip3 install -r python/requirements.txt &&\
+	cd libvmaf &&\
+	ninja -vC build install &&\
+	ln -s /usr/local/lib64/pkgconfig/libvmaf.pc ${FFMPEG_BUILD}/lib/pkgconfig/libvmaf.pc
+
+RUN cd ffmpeg &&\
+	PKG_CONFIG_PATH="${FFMPEG_BUILD}/lib/pkgconfig" ./configure --prefix="${FFMPEG_BUILD}" --pkg-config-flags="--static" --extra-cflags="-I${FFMPEG_BUILD}/include" --extra-ldflags="-L${FFMPEG_BUILD}/lib" --extra-libs=-lpthread --extra-libs=-lm --bindir="${FFMPEG_BIN}" --enable-gpl --enable-libfdk_aac --enable-libfreetype --enable-libmp3lame --enable-libopus --enable-libvpx --enable-libx264 --enable-libx265 --enable-libvmaf --enable-nonfree &&\
+	make && make install
+
+# ffmpeg本体
+# RUN curl -O -L https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 &&\
+# 	tar xjvf ffmpeg-snapshot.tar.bz2 &&\
+# 	cd ffmpeg &&\
+# 	PKG_CONFIG_PATH="${FFMPEG_BUILD}/lib/pkgconfig" ./configure --prefix="${FFMPEG_BUILD}" --pkg-config-flags="--static" --extra-cflags="-I${FFMPEG_BUILD}/include" --extra-ldflags="-L${FFMPEG_BUILD}/lib" --extra-libs=-lpthread --extra-libs=-lm --bindir="${FFMPEG_BIN}" --enable-gpl --enable-libfdk_aac --enable-libfreetype --enable-libmp3lame --enable-libopus --enable-libvpx --enable-libx264 --enable-libx265 --enable-nonfree &&\
+# 	make && make install
+# RUN hash -d ffmpeg
+
+# WORKDIR ${BASE_DIR}
+# RUN rm -rf ${FFMPEG_SOURCE}
